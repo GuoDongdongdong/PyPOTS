@@ -1,0 +1,83 @@
+base:
+  model: 'CSDI'
+  is_train: False
+  random_seed: 202221543
+  train_ratio: 0.7
+  validation_ratio: 0.1
+  missing_rate: 0.1
+  dataset_path: dataset/humidity/humidity_20per_missing.csv
+  target:
+    - humidity_missing
+
+default: &default
+  n_features: 1 # n_features == len(target)
+  batch_size: 32
+  epochs: 100
+  patience: 10
+  num_workers: 0
+  device: 'cuda:0'
+  n_steps: 48
+  saving_path: 'log'
+  model_saving_strategy : 'best'
+  # optimizer: default select Adam
+
+
+CSDI:
+  <<: *default
+  n_layers: 4
+  n_heads: 8
+  n_channels: 64
+  d_time_embedding: 128
+  d_feature_embedding: 16
+  d_diffusion_embedding: 128
+  is_unconditional: False
+  target_strategy: 'random'
+  n_diffusion_steps: 50
+  schedule: 'quad'
+  beta_start: 0.0001
+  beta_end: 0.5
+
+LOCF:
+  first_step_imputation: 'zero'
+
+SAITS:
+  <<: *default
+  n_layers: 2
+  d_model: 256
+  n_heads: 4
+  d_k: 64
+  d_v: 64
+  d_ffn: 128
+  dropout: 0.1
+  attn_dropout: 0.1
+  diagonal_attention_mask: True
+  ORT_weight: 1
+  MIT_weight: 1
+  # customized_loss_func: default select MAE
+
+BRITS:
+  <<: *default
+  rnn_hidden_size: 512
+
+Transformer: # vanilla Transformer
+  <<: *default
+  n_layers: 2
+  d_model: 256
+  n_heads: 4
+  d_k: 64
+  d_v: 64
+  d_ffn: 128
+  dropout: 0.1
+  attn_dropout: 0.1
+  ORT_weight: 1
+  MIT_weight: 1
+
+USGAN:
+  <<: *default
+  rnn_hidden_size: 512
+  hint_rate: 0.7
+  dropout: 0.1
+  G_steps: 1
+  D_steps: 1
+  # G_optimizer: default select Adam
+  # D_optimizer: default select Adam

@@ -2,6 +2,7 @@
 *~
 .idea
 .DS_Store
+.vscode
 
 # ignore all building results
 dist
@@ -19,3 +20,7 @@ docs/_build
 # ignore specific kinds of files like all PDFs
 *.pdf
 *.ipynb
+
+dataset
+log
+temp.py

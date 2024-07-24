@@ -293,7 +293,7 @@ class CSDI(BaseNNImputer):
 
                 # save the model if necessary
                 self._auto_save_model_if_necessary(
-                    confirm_saving=mean_loss < self.best_loss,
+                    confirm_saving=self.best_epoch == epoch,
                     saving_name=f"{self.__class__.__name__}_epoch{epoch}_loss{mean_loss}",
                 )
 
@@ -443,6 +443,7 @@ class CSDI(BaseNNImputer):
         self,
         test_set: Union[dict, str],
         file_type: str = "hdf5",
+        n_sampling_times: int = 1,
     ) -> np.ndarray:
         """Impute missing values in the given data with the trained model.
 
@@ -461,5 +462,6 @@ class CSDI(BaseNNImputer):
             Imputed data.
         """
 
-        result_dict = self.predict(test_set, file_type=file_type)
+        result_dict = self.predict(test_set,
+                                   file_type=file_type, n_sampling_times=n_sampling_times)
         return result_dict["imputation"]
