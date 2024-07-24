@@ -74,6 +74,7 @@ class BaseDataset(Dataset):
         return_X_pred: bool,
         return_y: bool,
         file_type: str = "hdf5",
+        n_steps: int = 48,
     ):
         super().__init__()
         # types and shapes had been checked after X and y input into the model
@@ -84,6 +85,7 @@ class BaseDataset(Dataset):
         self.return_X_pred = return_X_pred
         self.return_y = return_y
         self.file_type = file_type
+        self.n_steps = n_steps
 
         # initialize the following attributes
         self.X = None
@@ -95,9 +97,8 @@ class BaseDataset(Dataset):
         self.y = None
         self.file_handle = None
         self.fetch_data = None
-        self.n_samples: int = 0  # num of the samples in the dataset
-        self.n_steps: int = 0  # num of the time steps in each sample
-        self.n_features: int = 0  # num of the features in each sample
+        self.n_length: int = 0  # num of the length in dataset
+        self.n_features: int = 0  # num of the features in dataset
         self.n_pred_steps: int = 0  # num of the time steps in each forecasting sample
         self.n_pred_features: int = 0  # num of the features in each forecasting sample
 
@@ -178,8 +179,7 @@ class BaseDataset(Dataset):
 
         # get the sizes of the dataset
         (
-            self.n_samples,
-            self.n_steps,
+            self.n_length,
             self.n_features,
             self.n_pred_steps,
             self.n_pred_features,
@@ -209,7 +209,7 @@ class BaseDataset(Dataset):
         """
 
         # initialize the sizes
-        n_samples, n_steps, n_features, n_pred_steps, n_pred_features = 0, 0, 0, 0, 0
+        n_length, n_features, n_pred_steps, n_pred_features = 0, 0, 0, 0
 
         if isinstance(self.data, str):
             if self.file_handle is None:
@@ -224,18 +224,17 @@ class BaseDataset(Dataset):
                 n_pred_steps = len(first_pred_sample)
                 n_pred_features = first_pred_sample.shape[-1]
         else:
-            n_samples = len(self.X)
-            n_steps = len(self.X[0])
-            n_features = self.X[0].shape[-1]
+
+            n_length, n_features = self.X.shape
 
             if self.return_X_pred:
                 n_pred_steps = len(self.X_pred[0])
                 n_pred_features = self.X_pred[0].shape[-1]
 
-        return n_samples, n_steps, n_features, n_pred_steps, n_pred_features
+        return n_length, n_features, n_pred_steps, n_pred_features
 
     def __len__(self) -> int:
-        return self.n_samples
+        return self.n_length - self.n_steps
 
     @staticmethod
     def _check_array_input(
@@ -294,8 +293,8 @@ class BaseDataset(Dataset):
 
         # check the shape of X here
         X_shape = X.shape
-        assert len(X_shape) == 3, (
-            f"input should have 3 dimensions [n_samples, seq_len, n_features],"
+        assert len(X_shape) == 2, (
+            f"input should have 2 dimensions [length, n_features],"
             f"but got X: {X_shape}"
         )
         if X_ori is not None:

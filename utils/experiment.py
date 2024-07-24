@@ -26,14 +26,14 @@ class Experiment:
         self.train_set, self.validation_set, self.test_set = self._get_dataset()
 
     # pypots need inputs shape like [samples, n_steps, D], so we happy them happy.
-    def _set_shape(self, data:np.ndarray):
-        assert data.ndim == 2, 'input shape should be [L, D]'
-        L, D = data.shape
-        n_steps = self.conf['default']['n_steps']
-        new_length = L // n_steps * n_steps
-        data = data[:new_length, :]
-        data = data.reshape(-1, n_steps, D)
-        return data
+    # def _set_shape(self, data:np.ndarray):
+    #     assert data.ndim == 2, 'input shape should be [L, D]'
+    #     L, D = data.shape
+    #     n_steps = self.conf['default']['n_steps']
+    #     new_length = L // n_steps * n_steps
+    #     data = data[:new_length, :]
+    #     data = data.reshape(-1, n_steps, D)
+    #     return data
 
     def _get_dataset(self):
         dataset_path = self.conf['base']['dataset_path']
@@ -59,10 +59,9 @@ class Experiment:
         train_data = self.scaler.fit_transform(train_data)
         validation_data = self.scaler.transform(validation_data)
         test_data = self.scaler.transform(test_data)
-        # ndarray [samples, n_steps, D]
-        train_data = self._set_shape(train_data)
-        validation_data = self._set_shape(validation_data)
-        test_data = self._set_shape(test_data)
+        '''
+        pypots need inputs shape like [samples, n_steps, D], but it cause the training process to see fewer batch. it is harmful to training, so we modified BaseDataset DatasetForCSDI class in pypots.
+        '''
 
         missing_rate = self.conf['base']['missing_rate']
         # dataset for CSDI could be like:

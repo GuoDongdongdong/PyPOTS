@@ -33,6 +33,7 @@ class DatasetForCSDI(BaseDataset):
         target_strategy: str,
         return_X_ori: bool,
         file_type: str = "hdf5",
+        n_steps: int = 48,
     ):
         super().__init__(
             data=data,
@@ -40,6 +41,7 @@ class DatasetForCSDI(BaseDataset):
             return_X_pred=False,
             return_y=False,
             file_type=file_type,
+            n_steps=n_steps,
         )
         assert target_strategy in ["random", "hist", "mix"]
         self.target_strategy = target_strategy
@@ -96,21 +98,21 @@ class DatasetForCSDI(BaseDataset):
         """
 
         if self.return_X_ori:
-            observed_data = self.X_ori[idx]
-            cond_mask = self.missing_mask[idx]
-            indicating_mask = self.indicating_mask[idx]
+            observed_data = self.X_ori[idx: idx + self.n_steps]
+            cond_mask = self.missing_mask[idx: idx + self.n_steps]
+            indicating_mask = self.indicating_mask[idx: idx + self.n_steps]
         else:
-            observed_data = self.X[idx]
+            observed_data = self.X[idx: idx + self.n_steps]
             observed_data, observed_mask = fill_and_get_mask_torch(observed_data)
             if self.target_strategy == "random":
                 cond_mask = self.get_rand_mask(observed_mask)
             else:
                 if "for_pattern_mask" in self.data.keys():
                     for_pattern_mask = torch.from_numpy(
-                        self.data["for_pattern_mask"][idx]
+                        self.data["for_pattern_mask"][idx: idx + self.n_steps]
                     ).to(torch.float32)
                 else:
-                    previous_sample = self.X[idx - 1]
+                    previous_sample = self.X[idx - self.n_steps: idx]
                     for_pattern_mask = (~torch.isnan(previous_sample)).to(torch.float32)
 
                 cond_mask = self.get_hist_mask(
@@ -121,7 +123,7 @@ class DatasetForCSDI(BaseDataset):
         observed_tp = (
             torch.arange(0, self.n_steps, dtype=torch.float32)
             if "time_points" not in self.data.keys()
-            else torch.from_numpy(self.data["time_points"][idx]).to(torch.float32)
+            else torch.from_numpy(self.data["time_points"][idx: idx + self.n_steps]).to(torch.float32)
         )
 
         sample = [
@@ -133,7 +135,7 @@ class DatasetForCSDI(BaseDataset):
         ]
 
         if self.return_y:
-            sample.append(self.y[idx].to(torch.long))
+            sample.append(self.y[idx: idx + self.n_steps].to(torch.long))
 
         return sample
 
