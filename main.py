@@ -17,8 +17,6 @@ def main() :
     if is_train:
         exp.fit()
     else:
-        model_path = 'log/20240724_T173524/CSDI_epoch21_loss0.2962237745523453.pypots'
-        exp.load(model_path)
         exp.impute()
 
 if __name__ == '__main__' :

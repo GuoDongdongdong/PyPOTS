@@ -433,9 +433,16 @@ class CSDI(BaseNNImputer):
                 imputation_collector.append(imputed_data)
 
         # Step 3: output collection and return
-        imputation = torch.cat(imputation_collector).cpu().detach().numpy()
+        # [totoal_B, n_samples, n_steps, D]
+        imputations = torch.cat(imputation_collector).cpu().detach()
+        TB, n_samples, n_steps, D = imputations.shape
+        # [n_samples, total_B * n_steps, D]
+        imputations = imputations.reshape(n_samples, TB * n_steps, D)
+        # [L * D]
+        imputation_median = imputations.median(dim=0).values
         result_dict = {
-            "imputation": imputation,
+            "imputation": imputations,
+            "imputation_median" : imputation_median
         }
         return result_dict
 
@@ -462,6 +469,5 @@ class CSDI(BaseNNImputer):
             Imputed data.
         """
 
-        result_dict = self.predict(test_set,
+        return self.predict(test_set,
                                    file_type=file_type, n_sampling_times=n_sampling_times)
-        return result_dict["imputation"]

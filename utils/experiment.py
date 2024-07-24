@@ -1,3 +1,4 @@
+import os
 from typing import Union
 import numpy as np
 import pandas as pd
@@ -52,6 +53,8 @@ class Experiment:
         train_data = data[data_border_l[0]:data_border_r[0]].values
         validation_data = data[data_border_l[1]:data_border_r[1]].values
         test_data = data[data_border_l[2]:data_border_r[2]].values
+        # for result visualization
+        self.visual_data = raw_data[data_border_l[2]:data_border_r[2]].values
         # normalization
         train_data = self.scaler.fit_transform(train_data)
         validation_data = self.scaler.transform(validation_data)
@@ -108,9 +111,24 @@ class Experiment:
     def fit(self):
         self.model.fit(train_set=self.train_set, val_set=self.validation_set)
 
+    def save_csv(self, imputation : Union[np.ndarray | torch.Tensor], path):
+        if isinstance(imputation, torch.Tensor):
+            imputation = imputation.numpy()
+        assert imputation.ndim == 2, f'imputation shape shoule be like [L, D], but got {imputation.shape}'
+        L, D = imputation.shape
+        df = pd.DataFrame(self.visual_data[: L])
+        df['imputation'] = imputation
+        df.to_csv(os.path.join(path, 'result.csv'), index=False, float_format='%.3f')
+
     def impute(self) -> np.ndarray:
-        imputation = self.model.impute(test_set=self.test_set)
-        pass
+        load_path = self.conf['base']['load_path']
+        parent_dir = os.path.dirname(load_path)
+        self.load(load_path)
+        n_samples = self.conf['base']['n_samples']
+        results = self.model.impute(test_set=self.test_set, n_sampling_times=n_samples)
+        imputations = results['imputation']
+        imputation_median = results['imputation_median']
+        self.save_csv(imputation=imputation_median, path=parent_dir)
 
     def load(self, path: str):
         self.model.load(path)

@@ -21,6 +21,6 @@ docs/_build
 *.pdf
 *.ipynb
 
-dataset
-log
+dataset/
+result/
 temp.py

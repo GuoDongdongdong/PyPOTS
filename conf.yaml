@@ -6,9 +6,10 @@ base:
   validation_ratio: 0.1
   missing_rate: 0.1
   dataset_path: dataset/humidity/humidity_20per_missing.csv
+  load_path: 'result\20240724_T185416\CSDI_epoch21_loss0.2962237745523453.pypots'
   target:
     - humidity_missing
-
+  n_samples: 100 # generative model need samples times 
 default: &default
   n_features: 1 # n_features == len(target)
   batch_size: 32
@@ -17,7 +18,7 @@ default: &default
   num_workers: 0
   device: 'cuda:0'
   n_steps: 48
-  saving_path: 'log'
+  saving_path: 'result'
   model_saving_strategy : 'best'
   # optimizer: default select Adam
 
