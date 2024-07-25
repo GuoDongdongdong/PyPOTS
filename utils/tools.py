@@ -1,5 +1,6 @@
 import os
 import random
+from typing import Union
 
 import torch
 import numpy as np
@@ -8,40 +9,6 @@ from pygrinder import mcar
 
 # pypots logger
 from pypots.utils.logging import logger_creator, logger
-
-
-class EarlyStopping:
-    def __init__(self, patience, delta=0):
-        self.patience = patience
-        self.counter = 0
-        self.best_score = None
-        self.stop = False
-        self.val_loss_min = np.Inf
-        self.delta = delta
-
-        self.lr_decrse = False
-
-    def __call__(self, val_loss, model, path):
-        score = -val_loss
-        if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model, path)
-        elif score < self.best_score + self.delta:
-            self.counter += 1
-            logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience}')
-            if self.counter >= self.patience:
-                self.stop = True
-            self.lr_decrse = True
-        else:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model, path)
-            self.counter = 0
-            self.lr_decrse = False
-
-    def save_checkpoint(self, val_loss, model, path):
-        logger.info(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), os.path.join(path, 'checkpoint.pth'))
-        self.val_loss_min = val_loss
 
 
 def fix_random_seed(random_seed : int) :
@@ -90,3 +57,22 @@ def mcar(data : np.ndarray, p : float):
     res_data[artifical_missing_index] = np.nan
     res_data = res_data.reshape(data.shape)
     return res_data
+
+def calc_mae(x: Union[np.ndarray | torch.Tensor], y: Union[np.ndarray | torch.Tensor], mask:Union[np.ndarray | torch.Tensor]) -> float:
+    if isinstance(x, torch.Tensor):
+        x = x.numpy()
+    if isinstance(y, torch.Tensor):
+        y = y.numpy()
+    if isinstance(mask, torch.Tensor):
+        mask = mask.numpy()
+    return np.sum(np.abs(x - y) * mask)
+
+def calc_rmse(x: Union[np.ndarray | torch.Tensor], y: Union[np.ndarray | torch.Tensor], mask:Union[np.ndarray | torch.Tensor]) -> float:
+    if isinstance(x, torch.Tensor):
+        x = x.numpy()
+    if isinstance(y, torch.Tensor):
+        y = y.numpy()
+    if isinstance(mask, torch.Tensor):
+        mask = mask.numpy()
+    mse = np.sum(((x - y) ** 2) * mask)
+    return np.sqrt(mse)

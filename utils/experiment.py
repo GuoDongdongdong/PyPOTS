@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from pypots.imputation import CSDI, SAITS, LOCF, BRITS, Transformer, USGAN
 
-from utils.tools import mcar
+from utils.tools import logger, mcar, calc_mae, calc_rmse
 
 
 class Experiment:
@@ -134,6 +134,14 @@ class Experiment:
         for i in range(n_samples):
             n_samples_imputation[i, :, :] = self.inverse(n_samples_imputation[i, :, :])
         imputation_median = self.inverse(imputation_median)
+
+        observed_data = self.test_set['X_ori']
+        observed_mask = 1 - np.isnan(observed_data)
+        gt_mask       = 1 - np.isnan(self.test_set['X'])
+        target_mask   = observed_mask - gt_mask
+        mae = calc_mae(observed_data, imputation_median, target_mask)
+        rmse = calc_rmse(observed_data, imputation_median, target_mask)
+        logger.info(f'MAE: {mae}, RMSE: {rmse}')
 
         self.save_csv(imputation=imputation_median, path=parent_dir)
         np.save(os.path.join(parent_dir, 'n_samples_imputation.npy'), n_samples_imputation)
