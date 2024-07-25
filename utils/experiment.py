@@ -135,6 +135,7 @@ class Experiment:
         for i in range(n_samples):
             n_samples_imputation[i, :, :] = self.inverse(n_samples_imputation[i, :, :])
         imputation_median = self.inverse(imputation_median)
+        observed_data = self.inverse(observed_data)
 
         observed_data = self.test_set['X_ori'][:L]
         observed_mask = 1 - np.isnan(observed_data)
