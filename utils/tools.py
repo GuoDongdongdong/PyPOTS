@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import random
 from typing import Union
@@ -23,9 +24,10 @@ def fix_random_seed(random_seed : int) :
 
 
 def set_logger(saving_dir: str, file_name: str = 'logfile') :
+    time_now = datetime.now().__format__("%Y%m%d_T%H%M%S")
     format = "[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] %(message)s"
     logger_creator.set_logging_format(format)
-    logger_creator.set_saving_path(saving_dir, file_name)
+    logger_creator.set_saving_path(os.path.join(saving_dir, time_now), file_name)
     logger_creator.set_level('debug')
 
 """

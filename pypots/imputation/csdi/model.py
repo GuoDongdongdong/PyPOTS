@@ -101,10 +101,6 @@ class CSDI(BaseNNImputer):
         model will be parallely trained on the multiple devices (so far only support parallel training on CUDA devices).
         Other devices like Google TPU and Apple Silicon accelerator MPS may be added in the future.
 
-    saving_path :
-        The path for automatically saving model checkpoints and tensorboard files (i.e. loss values recorded during
-        training into a tensorboard file). Will not save if not given.
-
     model_saving_strategy :
         The strategy to save model checkpoints. It has to be one of [None, "best", "better", "all"].
         No model will be saved when it is set as None.
@@ -113,8 +109,6 @@ class CSDI(BaseNNImputer):
         better than in previous epochs.
         The "all" strategy will save every model after each epoch training.
 
-    verbose :
-        Whether to print out the training logs during the training process.
     """
 
     def __init__(
@@ -139,9 +133,7 @@ class CSDI(BaseNNImputer):
         optimizer: Optional[Optimizer] = Adam(),
         num_workers: int = 0,
         device: Optional[Union[str, torch.device, list]] = None,
-        saving_path: Optional[str] = None,
         model_saving_strategy: Optional[str] = "best",
-        verbose: bool = True,
     ):
         super().__init__(
             batch_size,
@@ -149,9 +141,7 @@ class CSDI(BaseNNImputer):
             patience,
             num_workers,
             device,
-            saving_path,
             model_saving_strategy,
-            verbose,
         )
         assert target_strategy in ["mix", "random"]
         assert schedule in ["quad", "linear"]
@@ -435,16 +425,13 @@ class CSDI(BaseNNImputer):
                 imputation_collector.append(imputed_data)
 
         # Step 3: output collection and return
-        # [totoal_B, n_samples, n_steps, D]
+        # [n_batch, n_samples, n_steps, n_features]
         n_samples_imputation = torch.cat(imputation_collector).cpu().detach()
-        TB, n_samples, n_steps, D = n_samples_imputation.shape
-        # [n_samples, total_B * n_steps, D]
-        n_samples_imputation = n_samples_imputation.reshape(n_samples, TB * n_steps, D)
-        # [L * D]
-        imputation_median = n_samples_imputation.median(dim=0).values
+        n_batch, n_samples, n_steps, n_features = n_samples_imputation.shape
+        # [n_samples, total_B * n_steps, n_features]
+        n_samples_imputation = n_samples_imputation.reshape(n_samples, n_batch * n_steps, n_features)
         result_dict = {
-            "imputation": n_samples_imputation,
-            "imputation_median" : imputation_median
+            "imputation": n_samples_imputation
         }
         return result_dict
 

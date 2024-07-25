@@ -31,10 +31,6 @@ class BaseModel(ABC):
         model will be parallely trained on the multiple devices (so far only support parallel training on CUDA devices).
         Other devices like Google TPU and Apple Silicon accelerator MPS may be added in the future.
 
-    saving_path :
-        The path for automatically saving model checkpoints and tensorboard files (i.e. loss values recorded during
-        training into a tensorboard file). Will not save if not given.
-
     model_saving_strategy :
         The strategy to save model checkpoints. It has to be one of [None, "best", "better", "all"].
         No model will be saved when it is set as None.
@@ -42,9 +38,6 @@ class BaseModel(ABC):
         The "better" strategy will automatically save the model during training whenever the model performs
         better than in previous epochs.
         The "all" strategy will save every model after each epoch training.
-
-    verbose :
-        Whether to print out the training logs during the training process.
 
     Attributes
     ----------
@@ -65,9 +58,7 @@ class BaseModel(ABC):
     def __init__(
         self,
         device: Optional[Union[str, torch.device, list]] = None,
-        saving_path: str = None,
         model_saving_strategy: Optional[str] = "best",
-        verbose: bool = True,
     ):
         saving_strategies = [None, "best", "better", "all"]
         assert (
@@ -75,21 +66,16 @@ class BaseModel(ABC):
         ), f"saving_strategy must be one of {saving_strategies}, but got f{model_saving_strategy}."
 
         self.device = None  # set up with _setup_device() below
-        self.saving_path = None  # set up with _setup_path() below
         self.model_saving_strategy = model_saving_strategy
-        self.verbose = verbose
-
-        if not self.verbose:
-            logger_creator.set_level("warning")
-
+        self.saving_path = logger_creator.get_parent_dir()
         self.model = None
         self.summary_writer = None
 
         # set up the device for model running below
         self._setup_device(device)
 
-        # set up saving_path to save the trained model and training logs
-        self._setup_path(saving_path)
+        # set up tb_saving_path to save the trained model and training logs
+        self._setup_path()
 
     def _setup_device(self, device: Union[None, str, torch.device, list]) -> None:
         if device is None:
@@ -151,38 +137,10 @@ class BaseModel(ABC):
                 torch.cuda.is_available() and torch.cuda.device_count() > 0
             ), "You are trying to use CUDA for model training, but CUDA is not available in your environment."
 
-    def _setup_path(self, saving_path) -> None:
-        MODEL_NO_NEED_TO_SAVE = [
-            "LOCF",
-            "Median",
-            "Mean",
-        ]
-        # if the model is no need to save (e.g. LOCF), then skip the following steps
-        if self.__class__.__name__ in MODEL_NO_NEED_TO_SAVE:
-            return
-
-        if isinstance(saving_path, str):
-            # get the current time to append to saving_path,
-            # so you can use the same saving_path to run multiple times
-            # and also be aware of when they were run
-            time_now = datetime.now().__format__("%Y%m%d_T%H%M%S")
-            # the actual saving_path for saving both the best model and the tensorboard file
-            self.saving_path = os.path.join(saving_path, time_now)
-
-            logger_creator.set_saving_path(self.saving_path, 'log')
-            # initialize self.summary_writer only if saving_path is given and not None
-            # otherwise self.summary_writer will be None and the training log won't be saved
-            tb_saving_path = os.path.join(self.saving_path, "tensorboard")
-            self.summary_writer = SummaryWriter(
-                tb_saving_path,
-                filename_suffix=".pypots",
-            )
-            logger.info(f"Model files will be saved to {self.saving_path}")
-            logger.info(f"Tensorboard file will be saved to {tb_saving_path}")
-        else:
-            logger.warning(
-                "‼️ saving_path not given. Model files and tensorboard file will not be saved."
-            )
+    def _setup_path(self) -> None:
+        tb_saving_path = logger_creator.get_parent_dir()
+        self.summary_writer = SummaryWriter(tb_saving_path)
+        logger.info(f"Tensorboard file will be saved to {tb_saving_path}")
 
     def _send_model_to_given_device(self) -> None:
         if isinstance(self.device, list):
@@ -441,9 +399,6 @@ class BaseNNModel(BaseModel):
         model will be parallely trained on the multiple devices (so far only support parallel training on CUDA devices).
         Other devices like Google TPU and Apple Silicon accelerator MPS may be added in the future.
 
-    saving_path :
-        The path for automatically saving model checkpoints and tensorboard files (i.e. loss values recorded during
-        training into a tensorboard file). Will not save if not given.
 
     model_saving_strategy :
         The strategy to save model checkpoints. It has to be one of [None, "best", "better", "all"].
@@ -452,9 +407,6 @@ class BaseNNModel(BaseModel):
         The "better" strategy will automatically save the model during training whenever the model performs
         better than in previous epochs.
         The "all" strategy will save every model after each epoch training.
-
-    verbose :
-        Whether to print out the training logs during the training process.
 
     Attributes
     ---------
@@ -486,15 +438,11 @@ class BaseNNModel(BaseModel):
         patience: Optional[int] = None,
         num_workers: int = 0,
         device: Optional[Union[str, torch.device, list]] = None,
-        saving_path: str = None,
         model_saving_strategy: Optional[str] = "best",
-        verbose: bool = True,
     ):
         super().__init__(
             device,
-            saving_path,
             model_saving_strategy,
-            verbose,
         )
 
         if patience is None:

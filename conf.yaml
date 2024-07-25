@@ -1,15 +1,18 @@
 base:
   model: 'CSDI'
-  is_train: False
+  is_train: True
   random_seed: 202221543
   train_ratio: 0.7
   validation_ratio: 0.1
   missing_rate: 0.1
   dataset_path: dataset/humidity/humidity_20per_missing.csv
+  saving_dir: 'result'
+  log_file_name: 'log'
   load_path: 'result/20240725_T111752/CSDI_epoch20_loss0.2687181351231594.pypots'
   target:
     - humidity_missing
   n_samples: 100 # generative model need samples times 
+
 default: &default
   n_features: 1 # n_features == len(target)
   batch_size: 32
@@ -18,7 +21,6 @@ default: &default
   num_workers: 0
   device: 'cuda:0'
   n_steps: 48
-  saving_path: 'result'
   model_saving_strategy : 'best'
   # optimizer: default select Adam
 

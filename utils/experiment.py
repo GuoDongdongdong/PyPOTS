@@ -10,6 +10,10 @@ from pypots.imputation import CSDI, SAITS, LOCF, BRITS, Transformer, USGAN
 from utils.tools import logger, mcar, calc_mae, calc_rmse
 
 
+GenerativeModels = ['CSDI']
+StatisticalModels = ['LOCF']
+
+
 class Experiment:
     def __init__(self, conf: dict):
         self.model_dict = {
@@ -23,19 +27,10 @@ class Experiment:
         self.conf   = conf
         model_name  = conf['base']['model']
         self.args   = conf[model_name]
+        self.saving_dir = self.conf['base']['saving_dir']
         self.model  = self.model_dict[model_name](**self.args)
         self.scaler = StandardScaler()
         self.train_set, self.validation_set, self.test_set = self._get_dataset()
-
-    # pypots need inputs shape like [samples, n_steps, D], so we happy them happy.
-    # def _set_shape(self, data:np.ndarray):
-    #     assert data.ndim == 2, 'input shape should be [L, D]'
-    #     L, D = data.shape
-    #     n_steps = self.conf['default']['n_steps']
-    #     new_length = L // n_steps * n_steps
-    #     data = data[:new_length, :]
-    #     data = data.reshape(-1, n_steps, D)
-    #     return data
 
     def _get_dataset(self):
         dataset_path = self.conf['base']['dataset_path']
@@ -109,37 +104,45 @@ class Experiment:
             return self._inverse_tensor(data)
         raise TypeError(f'only support ndarry and Tensor, but got {type(data)}.')
 
+    def load(self, path: str):
+        self.model.load(path)
+
     def fit(self):
         self.model.fit(train_set=self.train_set, val_set=self.validation_set)
 
     def save_csv(self, imputation : Union[np.ndarray | torch.Tensor], path):
         if isinstance(imputation, torch.Tensor):
             imputation = imputation.numpy()
-        assert imputation.ndim == 2, f'imputation shape shoule be like [L, D], but got {imputation.shape}'
-        L, D = imputation.shape
-        df = pd.DataFrame(self.visual_data[: L])
+        assert imputation.ndim == 2, f'imputation shape shoule be like [n_length, n_features], but got {imputation.shape}'
+        n_length, n_features = imputation.shape
+        df = pd.DataFrame(self.visual_data[: n_length])
         df['imputation'] = imputation
         df.to_csv(os.path.join(path, 'result.csv'), index=False, float_format='%.3f')
 
-    def impute(self) -> np.ndarray:
+    def _impute_generative_models(self):
         load_path  = self.conf['base']['load_path']
         n_samples  = self.conf['base']['n_samples']
         parent_dir = os.path.dirname(load_path)
         self.load(load_path)
-        results = self.model.impute(test_set=self.test_set, n_sampling_times=n_samples)
-        # [n_samples, L, D]
-        n_samples_imputation = results['imputation']
-        imputation_median    = results['imputation_median']
-        n_samples, L, D = n_samples_imputation.shape
+
+        result = self.model.impute(test_set=self.test_set, n_sampling_times=n_samples)
+        # TODO: n_samples_imputation can be used to calculate confidence intervals.
+        # tensor [n_samples, n_length, n_features]
+        n_samples_imputation = result['imputation']
+        n_samples, n_length, n_features = n_samples_imputation.shape
+        # median values is used for imputation.
+        imputation_median = n_samples_imputation.median(dim=0).values
+
         # denormalization
         for i in range(n_samples):
             n_samples_imputation[i, :, :] = self.inverse(n_samples_imputation[i, :, :])
         imputation_median = self.inverse(imputation_median)
         observed_data = self.inverse(observed_data)
 
-        observed_data = self.test_set['X_ori'][:L]
+        # n_length maybe less than test_length
+        observed_data = self.test_set['X_ori'][:n_length]
         observed_mask = 1 - np.isnan(observed_data)
-        gt_mask       = 1 - np.isnan(self.test_set['X'][:L])
+        gt_mask       = 1 - np.isnan(self.test_set['X'][:n_length])
         target_mask   = observed_mask - gt_mask
         mae = calc_mae(observed_data, imputation_median, target_mask)
         rmse = calc_rmse(observed_data, imputation_median, target_mask)
@@ -148,5 +151,24 @@ class Experiment:
         self.save_csv(imputation=imputation_median, path=parent_dir)
         np.save(os.path.join(parent_dir, 'n_samples_imputation.npy'), n_samples_imputation)
 
-    def load(self, path: str):
-        self.model.load(path)
+    def _impute_statistical_models(self):
+        result = self.model.impute(self.test_set)
+        imputation = result['imputation']
+
+        observed_data = self.test_set['X_ori']
+        observed_mask = 1 - np.isnan(observed_data)
+        gt_mask       = 1 - np.isnan(self.test_set['X'])
+        target_mask   = observed_mask - gt_mask
+        mae = calc_mae(observed_data, imputation, target_mask)
+        rmse = calc_rmse(observed_data, imputation, target_mask)
+        self.save_csv(imputation=imputation, path=self.saving_dir)
+        logger.info(f'MAE: {mae}, RMSE: {rmse}')
+
+    def impute(self):
+        model_name = self.conf['base']['model']
+        if model_name in GenerativeModels:
+            self._impute_generative_models()
+        elif model_name in StatisticalModels:
+            self._impute_statistical_models()
+
+

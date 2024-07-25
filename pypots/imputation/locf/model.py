@@ -102,23 +102,25 @@ class LOCF(BaseImputer):
                 X = f["X"][:]
         else:
             X = test_set["X"]
-
-        assert len(X.shape) == 3, (
-            f"Input X should have 3 dimensions [n_samples, n_steps, n_features], "
+        assert len(X.shape) == 2, (
+            f"Input X should have 2 dimensions [n_length, n_features], "
             f"but the actual shape of X: {X.shape}"
         )
         if isinstance(X, list):
             X = np.asarray(X)
 
         if isinstance(X, np.ndarray):
+            X = np.expand_dims(X, axis=0)
             imputed_data = locf_numpy(X, self.first_step_imputation)
         elif isinstance(X, torch.Tensor):
+            X = X.unsqueeze(dim=0)
             imputed_data = locf_torch(X, self.first_step_imputation)
         else:
             raise TypeError(
                 "X must be type of list/np.ndarray/torch.Tensor, " f"but got {type(X)}"
             )
-
+        n_samples, n_steps, n_features = imputed_data.shape
+        imputed_data = imputed_data.reshape(n_samples * n_steps, n_features)
         result_dict = {
             "imputation": imputed_data,
         }
@@ -146,5 +148,4 @@ class LOCF(BaseImputer):
             Imputed data.
         """
 
-        result_dict = self.predict(test_set, file_type=file_type)
-        return result_dict["imputation"]
+        return self.predict(test_set, file_type=file_type)

@@ -37,10 +37,6 @@ class BaseImputer(BaseModel):
         model will be parallely trained on the multiple devices (so far only support parallel training on CUDA devices).
         Other devices like Google TPU and Apple Silicon accelerator MPS may be added in the future.
 
-    saving_path :
-        The path for automatically saving model checkpoints and tensorboard files (i.e. loss values recorded during
-        training into a tensorboard file). Will not save if not given.
-
     model_saving_strategy :
         The strategy to save model checkpoints. It has to be one of [None, "best", "better", "all"].
         No model will be saved when it is set as None.
@@ -56,15 +52,11 @@ class BaseImputer(BaseModel):
     def __init__(
         self,
         device: Optional[Union[str, torch.device, list]] = None,
-        saving_path: str = None,
         model_saving_strategy: Optional[str] = "best",
-        verbose: bool = True,
     ):
         super().__init__(
             device,
-            saving_path,
             model_saving_strategy,
-            verbose,
         )
 
     @abstractmethod
@@ -162,10 +154,6 @@ class BaseNNImputer(BaseNNModel):
         model will be parallely trained on the multiple devices (so far only support parallel training on CUDA devices).
         Other devices like Google TPU and Apple Silicon accelerator MPS may be added in the future.
 
-    saving_path :
-        The path for automatically saving model checkpoints and tensorboard files (i.e. loss values recorded during
-        training into a tensorboard file). Will not save if not given.
-
     model_saving_strategy :
         The strategy to save model checkpoints. It has to be one of [None, "best", "better", "all"].
         No model will be saved when it is set as None.
@@ -193,9 +181,7 @@ class BaseNNImputer(BaseNNModel):
         patience: Optional[int] = None,
         num_workers: int = 0,
         device: Optional[Union[str, torch.device, list]] = None,
-        saving_path: str = None,
         model_saving_strategy: Optional[str] = "best",
-        verbose: bool = True,
     ):
         super().__init__(
             batch_size,
@@ -203,9 +189,7 @@ class BaseNNImputer(BaseNNModel):
             patience,
             num_workers,
             device,
-            saving_path,
             model_saving_strategy,
-            verbose,
         )
 
     @abstractmethod
