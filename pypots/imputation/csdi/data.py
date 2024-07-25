@@ -234,8 +234,9 @@ class TestDatasetForCSDI(DatasetForCSDI):
         data: Union[dict, str],
         return_X_ori: bool,
         file_type: str = "hdf5",
+        n_steps: int = 48,
     ):
-        super().__init__(data, "random", return_X_ori, file_type)
+        super().__init__(data, "random", return_X_ori, file_type, n_steps)
 
     def _fetch_data_from_array(self, idx: int) -> Iterable:
         """Fetch data according to index.
@@ -263,14 +264,14 @@ class TestDatasetForCSDI(DatasetForCSDI):
                 The time points (timestamp) of the observed data.
         """
 
-        observed_data = self.X[idx]
+        observed_data = self.X[idx: idx + self.n_steps]
         observed_data, observed_mask = fill_and_get_mask_torch(observed_data)
         cond_mask = observed_mask
 
         observed_tp = (
             torch.arange(0, self.n_steps, dtype=torch.float32)
             if "time_points" not in self.data.keys()
-            else torch.from_numpy(self.data["time_points"][idx]).to(torch.float32)
+            else torch.from_numpy(self.data["time_points"][idx: idx + self.n_steps]).to(torch.float32)
         )
 
         sample = [
@@ -281,7 +282,7 @@ class TestDatasetForCSDI(DatasetForCSDI):
         ]
 
         if self.return_y:
-            sample.append(self.y[idx].to(torch.long))
+            sample.append(self.y[idx: idx + self.n_steps].to(torch.long))
 
         return sample
 
