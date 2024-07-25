@@ -1,11 +1,13 @@
 import os
 from typing import Union
+
+import torch
 import numpy as np
 import pandas as pd
-from pypots.imputation import CSDI, SAITS, LOCF, BRITS, Transformer, USGAN
-import torch
-from utils.tools import mcar
 from sklearn.preprocessing import StandardScaler
+from pypots.imputation import CSDI, SAITS, LOCF, BRITS, Transformer, USGAN
+
+from utils.tools import mcar
 
 
 class Experiment:

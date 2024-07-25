@@ -412,11 +412,13 @@ class CSDI(BaseNNImputer):
         # Step 1: wrap the input data with classes Dataset and DataLoader
         self.model.eval()  # set the model as eval status to freeze it.
         test_set = TestDatasetForCSDI(test_set, return_X_ori=False, file_type=file_type)
+        sampler = iter(range(0, len(test_set), self.n_steps))
         test_loader = DataLoader(
             test_set,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
+            sampler=sampler
         )
         imputation_collector = []
 
