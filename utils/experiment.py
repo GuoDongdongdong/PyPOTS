@@ -120,14 +120,21 @@ class Experiment:
         df.to_csv(os.path.join(path, 'result.csv'), index=False, float_format='%.3f')
 
     def impute(self) -> np.ndarray:
-        load_path = self.conf['base']['load_path']
+        load_path  = self.conf['base']['load_path']
+        n_samples  = self.conf['base']['n_samples']
         parent_dir = os.path.dirname(load_path)
         self.load(load_path)
-        n_samples = self.conf['base']['n_samples']
         results = self.model.impute(test_set=self.test_set, n_sampling_times=n_samples)
-        imputations = results['imputation']
-        imputation_median = results['imputation_median']
+        # [n_samples, L, D]
+        n_samples_imputation = results['imputation']
+        imputation_median    = results['imputation_median']
+        # denormalization
+        for i in range(n_samples):
+            n_samples_imputation[i, :, :] = self.inverse(n_samples_imputation[i, :, :])
+        imputation_median = self.inverse(imputation_median)
+
         self.save_csv(imputation=imputation_median, path=parent_dir)
+        np.save(os.path.join(parent_dir, 'n_samples_imputation.npy'), n_samples_imputation)
 
     def load(self, path: str):
         self.model.load(path)

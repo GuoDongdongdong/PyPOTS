@@ -434,14 +434,14 @@ class CSDI(BaseNNImputer):
 
         # Step 3: output collection and return
         # [totoal_B, n_samples, n_steps, D]
-        imputations = torch.cat(imputation_collector).cpu().detach()
-        TB, n_samples, n_steps, D = imputations.shape
+        n_samples_imputation = torch.cat(imputation_collector).cpu().detach()
+        TB, n_samples, n_steps, D = n_samples_imputation.shape
         # [n_samples, total_B * n_steps, D]
-        imputations = imputations.reshape(n_samples, TB * n_steps, D)
+        n_samples_imputation = n_samples_imputation.reshape(n_samples, TB * n_steps, D)
         # [L * D]
-        imputation_median = imputations.median(dim=0).values
+        imputation_median = n_samples_imputation.median(dim=0).values
         result_dict = {
-            "imputation": imputations,
+            "imputation": n_samples_imputation,
             "imputation_median" : imputation_median
         }
         return result_dict
