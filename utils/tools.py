@@ -65,7 +65,9 @@ def calc_mae(x: Union[np.ndarray | torch.Tensor], y: Union[np.ndarray | torch.Te
         y = y.numpy()
     if isinstance(mask, torch.Tensor):
         mask = mask.numpy()
-    return np.sum(np.abs(x - y) * mask)
+    x = np.nan_to_num(x)
+    y = np.nan_to_num(y)
+    return np.sum(np.abs(x - y) * mask) / np.sum(mask)
 
 def calc_rmse(x: Union[np.ndarray | torch.Tensor], y: Union[np.ndarray | torch.Tensor], mask:Union[np.ndarray | torch.Tensor]) -> float:
     if isinstance(x, torch.Tensor):
@@ -74,5 +76,7 @@ def calc_rmse(x: Union[np.ndarray | torch.Tensor], y: Union[np.ndarray | torch.T
         y = y.numpy()
     if isinstance(mask, torch.Tensor):
         mask = mask.numpy()
+    x = np.nan_to_num(x)
+    y = np.nan_to_num(y)
     mse = np.sum(((x - y) ** 2) * mask)
-    return np.sqrt(mse)
+    return np.sqrt(mse / np.sum(mask))

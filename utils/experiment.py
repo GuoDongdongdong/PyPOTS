@@ -130,14 +130,15 @@ class Experiment:
         # [n_samples, L, D]
         n_samples_imputation = results['imputation']
         imputation_median    = results['imputation_median']
+        n_samples, L, D = n_samples_imputation.shape
         # denormalization
         for i in range(n_samples):
             n_samples_imputation[i, :, :] = self.inverse(n_samples_imputation[i, :, :])
         imputation_median = self.inverse(imputation_median)
 
-        observed_data = self.test_set['X_ori']
+        observed_data = self.test_set['X_ori'][:L]
         observed_mask = 1 - np.isnan(observed_data)
-        gt_mask       = 1 - np.isnan(self.test_set['X'])
+        gt_mask       = 1 - np.isnan(self.test_set['X'][:L])
         target_mask   = observed_mask - gt_mask
         mae = calc_mae(observed_data, imputation_median, target_mask)
         rmse = calc_rmse(observed_data, imputation_median, target_mask)

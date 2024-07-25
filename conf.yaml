@@ -6,7 +6,7 @@ base:
   validation_ratio: 0.1
   missing_rate: 0.1
   dataset_path: dataset/humidity/humidity_20per_missing.csv
-  load_path: 'result/20240724_T220329/CSDI_epoch20_loss0.2687181351231594.pypots'
+  load_path: 'result/20240725_T111752/CSDI_epoch20_loss0.2687181351231594.pypots'
   target:
     - humidity_missing
   n_samples: 100 # generative model need samples times 
