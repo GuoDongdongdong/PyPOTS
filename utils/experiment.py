@@ -7,12 +7,12 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from pypots.imputation import CSDI, SAITS, LOCF, BRITS, Transformer, USGAN
 
-from utils.tools import logger, mcar, calc_mae, calc_rmse
+from utils.tools import logger, logger_creator, mcar, calc_mae, calc_rmse
 
 
-GenerativeModels = ['CSDI']
+GenerativeModels = ['CSDI', 'USGAN']
 StatisticalModels = ['LOCF']
-
+DeterministicModel = ['Transformer', 'SAITS', 'BRITS']
 
 class Experiment:
     def __init__(self, conf: dict):
@@ -27,7 +27,7 @@ class Experiment:
         self.conf   = conf
         model_name  = conf['base']['model']
         self.args   = conf[model_name]
-        self.saving_dir = self.conf['base']['saving_dir']
+        self.saving_dir = logger_creator.get_parent_dir()
         self.model  = self.model_dict[model_name](**self.args)
         self.scaler = StandardScaler()
         self.train_set, self.validation_set, self.test_set = self._get_dataset()
@@ -154,8 +154,11 @@ class Experiment:
     def _impute_statistical_models(self):
         result = self.model.impute(self.test_set)
         imputation = result['imputation']
-
         observed_data = self.test_set['X_ori']
+        # denormalzation
+        imputation = self.inverse(imputation)
+        observed_data = self.inverse(observed_data)
+
         observed_mask = 1 - np.isnan(observed_data)
         gt_mask       = 1 - np.isnan(self.test_set['X'])
         target_mask   = observed_mask - gt_mask

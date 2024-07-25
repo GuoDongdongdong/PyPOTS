@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import yaml
 
@@ -16,9 +17,10 @@ def init():
     random_seed = conf['base']['random_seed']
     fix_random_seed(random_seed)
     # set logger
+    time_now = datetime.now().__format__("%Y%m%d_T%H%M%S")
     saving_dir = conf['base']['saving_dir']
     log_file_name = conf['base']['log_file_name']
-    set_logger(saving_dir=saving_dir, file_name=log_file_name)
+    set_logger(saving_dir=os.path.join(saving_dir, time_now), file_name=log_file_name)
 
     return conf
 
